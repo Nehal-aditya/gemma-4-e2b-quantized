@@ -1,0 +1,54 @@
+name: Quantize Gemma E2B and Release
+
+on:
+  workflow_dispatch:
+
+jobs:
+  quantize:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        bits: [4, 8]   # Run quantization for int4 and int8
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install deps
+        run: |
+          pip install -r requirements.txt
+
+      - name: Download Gemma E2B
+        run: |
+          huggingface-cli download google/gemma-4-E2B --local-dir ./model
+
+      - name: Quantize
+        run: |
+          python scripts/quantize.py \
+            --model ./model \
+            --output_dir ./quantized-${{ matrix.bits }}bit \
+            --bits ${{ matrix.bits }}
+
+      - name: Create Release
+        if: matrix.bits == 4
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: gemma-e2b-quantized
+          name: "Gemma 4 E2B Quantized"
+          body: "Automated quantization of Gemma 4 E2B (int4 & int8)."
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload Quantized Model to Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: gemma-e2b-quantized
+          files: ./quantized-${{ matrix.bits }}bit/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
