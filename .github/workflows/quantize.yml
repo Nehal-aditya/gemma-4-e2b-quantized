@@ -1,7 +1,9 @@
 name: Quantize Gemma E2B and Release
 
 on:
-  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'   # Trigger on tags starting with v (e.g., v1.0.0)
 
 jobs:
   quantize:
@@ -37,9 +39,9 @@ jobs:
         if: matrix.bits == 4
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: gemma-e2b-quantized
-          name: "Gemma 4 E2B Quantized"
-          body: "Automated quantization of Gemma 4 E2B (int4 & int8)."
+          tag_name: ${{ github.ref_name }}
+          name: "Gemma 4 E2B Quantized (${{ github.ref_name }})"
+          body: "Automated quantization of Gemma 4 E2B (int4 & int8) for tag ${{ github.ref_name }}."
           draft: false
           prerelease: false
         env:
@@ -48,7 +50,7 @@ jobs:
       - name: Upload Quantized Model to Release
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: gemma-e2b-quantized
+          tag_name: ${{ github.ref_name }}
           files: ./quantized-${{ matrix.bits }}bit/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
